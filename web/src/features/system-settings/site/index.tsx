@@ -26,7 +26,7 @@ import {
 
 const defaultSiteSettings: SiteSettings = {
   Notice: '',
-  SystemName: 'macroapple',
+  SystemName: 'Macroapple',
   Logo: '',
   Footer: '',
   About: '',
