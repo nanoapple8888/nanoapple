@@ -18,6 +18,8 @@ import (
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 )
 
 func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *types.NewAPIError) {
@@ -51,7 +53,19 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
-		requestBody = common.ReaderOnly(storage)
+		// Pass-through still needs Codex-compatible response_format injection:
+		// channels with pass_through_body_enabled would otherwise forward the
+		// raw client body and lose the validated default (b64_json).
+		bodyBytes, err := storage.Bytes()
+		if err != nil {
+			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+		}
+		bodyBytes, err = injectImageResponseFormat(bodyBytes, request.ResponseFormat)
+		if err != nil {
+			return types.NewError(err, types.ErrorCodeConvertRequestFailed, types.ErrOptionWithSkipRetry())
+		}
+		info.UpstreamRequestBodySize = int64(len(bodyBytes))
+		requestBody = bytes.NewReader(bodyBytes)
 	} else {
 		convertedRequest, err := adaptor.ConvertImageRequest(c, info, *request)
 		if err != nil {
@@ -149,4 +163,19 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), logContent)
 	return nil
+}
+
+// injectImageResponseFormat ensures pass-through image JSON bodies carry the
+// validated response_format (e.g. default b64_json for gpt-image*). Explicit
+// non-empty client values are left unchanged.
+func injectImageResponseFormat(body []byte, responseFormat string) ([]byte, error) {
+	responseFormat = strings.TrimSpace(responseFormat)
+	if responseFormat == "" || len(body) == 0 || !gjson.ValidBytes(body) {
+		return body, nil
+	}
+	current := strings.TrimSpace(gjson.GetBytes(body, "response_format").String())
+	if current != "" {
+		return body, nil
+	}
+	return sjson.SetBytes(body, "response_format", responseFormat)
 }
