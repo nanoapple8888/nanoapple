@@ -2,6 +2,9 @@ package openai
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/gin-gonic/gin"
@@ -312,6 +316,67 @@ func TestOpenaiImageStreamHandlerWrapsJSONResponse(t *testing.T) {
 	require.Contains(t, recorder.Body.String(), `data: [DONE]`)
 	require.Equal(t, 2, strings.Count(recorder.Body.String(), `event: image_generation.completed`))
 	require.Equal(t, 2.0, info.PriceData.OtherRatios()["n"])
+}
+
+func TestOpenaiImageHandlerConvertsURLToB64JSON(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	oldDownload := downloadImageURLForB64JSON
+	t.Cleanup(func() { downloadImageURLForB64JSON = oldDownload })
+	downloadImageURLForB64JSON = func(imageURL string) ([]byte, error) {
+		require.Equal(t, "https://cdn.example/generated.png", imageURL)
+		return []byte("fake-png-bytes"), nil
+	}
+
+	body := `{"created":1710000000,"data":[{"url":"https://cdn.example/generated.png"}]}`
+	c, recorder, resp, info := newImageTestContext(t, body, "application/json", false)
+	info.Request = &dto.ImageRequest{
+		Model:          "gpt-image-2",
+		ResponseFormat: "b64_json",
+	}
+
+	usage, err := OpenaiImageHandler(c, info, resp)
+	require.Nil(t, err)
+	require.NotNil(t, usage)
+
+	var payload struct {
+		Data []struct {
+			B64JSON string `json:"b64_json"`
+			URL     string `json:"url"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &payload))
+	require.Len(t, payload.Data, 1)
+	require.Equal(t, "https://cdn.example/generated.png", payload.Data[0].URL)
+	require.Equal(t, base64.StdEncoding.EncodeToString([]byte("fake-png-bytes")), payload.Data[0].B64JSON)
+}
+
+func TestOpenaiImageHandlerPreservesExplicitURLFormat(t *testing.T) {
+	oldMode := gin.Mode()
+	gin.SetMode(gin.TestMode)
+	t.Cleanup(func() { gin.SetMode(oldMode) })
+
+	called := false
+	oldDownload := downloadImageURLForB64JSON
+	t.Cleanup(func() { downloadImageURLForB64JSON = oldDownload })
+	downloadImageURLForB64JSON = func(imageURL string) ([]byte, error) {
+		called = true
+		return nil, fmt.Errorf("should not download")
+	}
+
+	body := `{"created":1710000000,"data":[{"url":"https://cdn.example/generated.png"}]}`
+	c, recorder, resp, info := newImageTestContext(t, body, "application/json", false)
+	info.Request = &dto.ImageRequest{
+		Model:          "gpt-image-2",
+		ResponseFormat: "url",
+	}
+
+	_, err := OpenaiImageHandler(c, info, resp)
+	require.Nil(t, err)
+	require.False(t, called)
+	require.Equal(t, body, recorder.Body.String())
 }
 
 func TestOpenaiImageHandlerUsesPositiveActualCountForFixedPrice(t *testing.T) {
