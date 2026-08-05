@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +22,33 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 )
+
+// maxImageURLConvertBytes caps url→b64_json downloads for Codex compatibility.
+const maxImageURLConvertBytes = 30 << 20
+
+// downloadImageURLForB64JSON fetches an upstream image URL for conversion.
+// Tests may override this hook.
+var downloadImageURLForB64JSON = downloadImageURLForB64JSONDefault
+
+func downloadImageURLForB64JSONDefault(imageURL string) ([]byte, error) {
+	resp, err := service.DoDownloadRequest(imageURL, "openai image url to b64_json")
+	if err != nil {
+		return nil, err
+	}
+	defer service.CloseResponseBodyGracefully(resp)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("download image url status code: %d", resp.StatusCode)
+	}
+	limited := io.LimitReader(resp.Body, maxImageURLConvertBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > maxImageURLConvertBytes {
+		return nil, fmt.Errorf("image url content exceeds %d bytes", maxImageURLConvertBytes)
+	}
+	return data, nil
+}
 
 func updateOpenAIImageCount(info *relaycommon.RelayInfo, count int64) {
 	if info == nil || !info.PriceData.UsePrice || count <= 0 || count > int64(dto.MaxImageN) {
@@ -49,6 +77,11 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 		return nil, types.WithOpenAIError(*oaiError, resp.StatusCode)
 	}
 
+	responseBody, err = ensureOpenAIImageB64JSON(info, responseBody)
+	if err != nil {
+		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusBadGateway)
+	}
+
 	updateOpenAIImageCount(info, gjson.GetBytes(responseBody, "data.#").Int())
 
 	// 写入新的 response body
@@ -57,6 +90,52 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 	normalizeOpenAIUsage(&usageResp.Usage)
 	applyUsagePostProcessing(info, &usageResp.Usage, responseBody)
 	return &usageResp.Usage, nil
+}
+
+// wantsOpenAIImageB64JSON reports whether the client expects data[].b64_json.
+// Codex ImageGen only parses b64_json and cannot send response_format.
+func wantsOpenAIImageB64JSON(info *relaycommon.RelayInfo) bool {
+	if info == nil || info.Request == nil {
+		return false
+	}
+	imageReq, ok := info.Request.(*dto.ImageRequest)
+	if !ok || imageReq == nil {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(imageReq.ResponseFormat), "b64_json")
+}
+
+// ensureOpenAIImageB64JSON converts data[].url into data[].b64_json when the
+// client requested b64_json but upstream only returned URLs. Items that already
+// include b64_json are left unchanged.
+func ensureOpenAIImageB64JSON(info *relaycommon.RelayInfo, responseBody []byte) ([]byte, error) {
+	if !wantsOpenAIImageB64JSON(info) || len(responseBody) == 0 {
+		return responseBody, nil
+	}
+	data := gjson.GetBytes(responseBody, "data")
+	if !data.IsArray() {
+		return responseBody, nil
+	}
+	var err error
+	for i, item := range data.Array() {
+		if strings.TrimSpace(item.Get("b64_json").String()) != "" {
+			continue
+		}
+		imageURL := strings.TrimSpace(item.Get("url").String())
+		if imageURL == "" {
+			continue
+		}
+		raw, downloadErr := downloadImageURLForB64JSON(imageURL)
+		if downloadErr != nil {
+			return nil, fmt.Errorf("convert image url to b64_json: %w", downloadErr)
+		}
+		encoded := base64.StdEncoding.EncodeToString(raw)
+		responseBody, err = sjson.SetBytes(responseBody, "data."+strconv.Itoa(i)+".b64_json", encoded)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return responseBody, nil
 }
 
 // normalizeOpenAIUsage maps the OpenAI Images usage shape (input_tokens /
@@ -248,6 +327,10 @@ func openaiImageJSONAsStreamHandler(c *gin.Context, info *relaycommon.RelayInfo,
 	}
 	if oaiError := usageResp.GetOpenAIError(); oaiError != nil && oaiError.Type != "" {
 		return nil, types.WithOpenAIError(*oaiError, resp.StatusCode)
+	}
+	responseBody, err = ensureOpenAIImageB64JSON(info, responseBody)
+	if err != nil {
+		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusBadGateway)
 	}
 	normalizeOpenAIUsage(&usageResp.Usage)
 	applyUsagePostProcessing(info, &usageResp.Usage, responseBody)
