@@ -70,6 +70,16 @@ func TestGetAndValidOpenAIImageRequestMultipartStream(t *testing.T) {
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid stream value")
 	})
+
+	t.Run("absent multipart response_format defaults to b64_json", func(t *testing.T) {
+		c, _ := newContext(t, "false", true)
+
+		req, err := GetAndValidOpenAIImageRequest(c, relayconstant.RelayModeImagesEdits)
+		require.NoError(t, err)
+		require.Equal(t, "b64_json", req.ResponseFormat)
+		require.Equal(t, "b64_json", c.Request.PostForm.Get("response_format"))
+		require.Equal(t, "b64_json", url.Values(c.Request.MultipartForm.Value).Get("response_format"))
+	})
 }
 
 // TestGetAndValidOpenAIImageRequestNBounds guards the billing invariant that
@@ -140,6 +150,20 @@ func TestGetAndValidOpenAIImageRequestNBounds(t *testing.T) {
 			require.Equal(t, float64(tt.wantN), req.GetTokenCountMeta().BillingRatios["n"])
 		})
 	}
+
+	t.Run("absent response_format defaults to b64_json", func(t *testing.T) {
+		c := newJSONContext(t, `{"model":"gpt-image-2","prompt":"a cat"}`)
+		req, err := GetAndValidOpenAIImageRequest(c, relayconstant.RelayModeImagesGenerations)
+		require.NoError(t, err)
+		require.Equal(t, "b64_json", req.ResponseFormat)
+	})
+
+	t.Run("explicit response_format url is preserved", func(t *testing.T) {
+		c := newJSONContext(t, `{"model":"gpt-image-2","prompt":"a cat","response_format":"url"}`)
+		req, err := GetAndValidOpenAIImageRequest(c, relayconstant.RelayModeImagesGenerations)
+		require.NoError(t, err)
+		require.Equal(t, "url", req.ResponseFormat)
+	})
 
 	t.Run("negative multipart n is rejected", func(t *testing.T) {
 		var body bytes.Buffer
