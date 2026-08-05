@@ -262,23 +262,29 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 		}
 	}
 
-	// Codex image_gen cannot send response_format. Many OpenAI-compatible
-	// upstreams then default to url, which Codex cannot parse. Default empty
-	// response_format to b64_json; clients that want url must set it explicitly.
-	if strings.TrimSpace(imageRequest.ResponseFormat) == "" {
+	// Codex image_gen cannot send response_format and only parses b64_json.
+	// Limit the default to gpt-image* / chatgpt-image* so dall-e and other
+	// models keep their normal empty-format upstream default (usually url).
+	// Explicit response_format (including url) is always preserved.
+	if strings.TrimSpace(imageRequest.ResponseFormat) == "" && prefersB64JSONImageResponse(imageRequest.Model) {
 		imageRequest.ResponseFormat = "b64_json"
-	}
-	// Multipart edit relays copy form fields to upstream; keep the form in sync.
-	if c.Request.MultipartForm != nil && c.Request.MultipartForm.Value != nil {
-		if strings.TrimSpace(url.Values(c.Request.MultipartForm.Value).Get("response_format")) == "" {
-			c.Request.MultipartForm.Value["response_format"] = []string{imageRequest.ResponseFormat}
-			if c.Request.PostForm != nil {
-				c.Request.PostForm.Set("response_format", imageRequest.ResponseFormat)
+		// Multipart edit relays copy form fields to upstream; keep the form in sync.
+		if c.Request.MultipartForm != nil && c.Request.MultipartForm.Value != nil {
+			if strings.TrimSpace(url.Values(c.Request.MultipartForm.Value).Get("response_format")) == "" {
+				c.Request.MultipartForm.Value["response_format"] = []string{imageRequest.ResponseFormat}
+				if c.Request.PostForm != nil {
+					c.Request.PostForm.Set("response_format", imageRequest.ResponseFormat)
+				}
 			}
 		}
 	}
 
 	return imageRequest, nil
+}
+
+func prefersB64JSONImageResponse(modelName string) bool {
+	modelName = strings.ToLower(strings.TrimSpace(modelName))
+	return strings.HasPrefix(modelName, "gpt-image") || strings.HasPrefix(modelName, "chatgpt-image")
 }
 
 func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest, err error) {
