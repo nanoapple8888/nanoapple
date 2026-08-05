@@ -181,6 +181,7 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			}
 			imageRequest.Quality = formData.Get("quality")
 			imageRequest.Size = formData.Get("size")
+			imageRequest.ResponseFormat = formData.Get("response_format")
 			if streamValue := strings.TrimSpace(formData.Get("stream")); streamValue != "" {
 				stream, err := strconv.ParseBool(streamValue)
 				if err != nil {
@@ -258,6 +259,22 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 
 		if imageRequest.N == nil || *imageRequest.N == 0 {
 			imageRequest.N = common.GetPointer(uint(1))
+		}
+	}
+
+	// Codex image_gen cannot send response_format. Many OpenAI-compatible
+	// upstreams then default to url, which Codex cannot parse. Default empty
+	// response_format to b64_json; clients that want url must set it explicitly.
+	if strings.TrimSpace(imageRequest.ResponseFormat) == "" {
+		imageRequest.ResponseFormat = "b64_json"
+	}
+	// Multipart edit relays copy form fields to upstream; keep the form in sync.
+	if c.Request.MultipartForm != nil && c.Request.MultipartForm.Value != nil {
+		if strings.TrimSpace(url.Values(c.Request.MultipartForm.Value).Get("response_format")) == "" {
+			c.Request.MultipartForm.Value["response_format"] = []string{imageRequest.ResponseFormat}
+			if c.Request.PostForm != nil {
+				c.Request.PostForm.Set("response_format", imageRequest.ResponseFormat)
+			}
 		}
 	}
 
