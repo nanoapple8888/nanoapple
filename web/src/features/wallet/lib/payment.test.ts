@@ -23,7 +23,6 @@ import { PAYMENT_TYPES } from '../constants'
 import {
   dispatchSelectedPayment,
   isStripePayment,
-  isHupijiaoPayment,
   isWaffoPayment,
   isWaffoPancakePayment,
 } from './payment'
@@ -34,8 +33,6 @@ describe('payment type classification', () => {
     assert.equal(isWaffoPayment(PAYMENT_TYPES.WAFFO_PANCAKE), false)
     assert.equal(isWaffoPancakePayment(PAYMENT_TYPES.WAFFO_PANCAKE), true)
     assert.equal(isWaffoPancakePayment(PAYMENT_TYPES.WAFFO), false)
-    assert.equal(isHupijiaoPayment(PAYMENT_TYPES.HUPIJIAO), true)
-    assert.equal(isHupijiaoPayment(PAYMENT_TYPES.WAFFO), false)
     assert.equal(isStripePayment(PAYMENT_TYPES.STRIPE), true)
   })
 })
@@ -60,10 +57,6 @@ describe('payment dispatch', () => {
           calls.push('pancake')
           return false
         },
-        hupijiao: async () => {
-          calls.push('hupijiao')
-          return false
-        },
       }
     )
 
@@ -84,35 +77,10 @@ describe('payment dispatch', () => {
           return true
         },
         waffoPancake: async () => false,
-        hupijiao: async () => false,
       }
     )
 
     assert.equal(success, false)
     assert.equal(called, false)
-  })
-
-  test('routes Hupijiao to its dedicated checkout processor', async () => {
-    const calls: string[] = []
-    const success = await dispatchSelectedPayment(
-      { name: 'Hupijiao', type: PAYMENT_TYPES.HUPIJIAO },
-      50,
-      null,
-      {
-        regular: async () => {
-          calls.push('regular')
-          return false
-        },
-        waffo: async () => false,
-        waffoPancake: async () => false,
-        hupijiao: async (amount) => {
-          calls.push(`hupijiao:${amount}`)
-          return true
-        },
-      }
-    )
-
-    assert.equal(success, true)
-    assert.deepEqual(calls, ['hupijiao:50'])
   })
 })

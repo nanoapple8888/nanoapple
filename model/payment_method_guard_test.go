@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -101,31 +100,6 @@ func TestRechargeWaffoPancake_RejectsMismatchedPaymentMethod(t *testing.T) {
 	require.NotNil(t, topUp)
 	assert.Equal(t, common.TopUpStatusPending, topUp.Status)
 	assert.Equal(t, 0, getUserQuotaForPaymentGuardTest(t, 101))
-}
-
-func TestRechargeHupijiaoRejectsMismatchedAmount(t *testing.T) {
-	truncateTables(t)
-
-	insertUserForPaymentGuardTest(t, 111, 0)
-	insertTopUpForPaymentGuardTest(t, "hupijiao-amount-guard", 111, PaymentProviderHupijiao)
-
-	err := RechargeHupijiao("hupijiao-amount-guard", decimal.RequireFromString("9.98"), "127.0.0.1")
-	require.ErrorIs(t, err, ErrPaymentAmountMismatch)
-	assert.Equal(t, common.TopUpStatusPending, getTopUpStatusForPaymentGuardTest(t, "hupijiao-amount-guard"))
-	assert.Equal(t, 0, getUserQuotaForPaymentGuardTest(t, 111))
-}
-
-func TestRechargeHupijiaoIsIdempotentAfterSuccessfulCallback(t *testing.T) {
-	truncateTables(t)
-
-	insertUserForPaymentGuardTest(t, 112, 0)
-	insertTopUpForPaymentGuardTest(t, "hupijiao-idempotency", 112, PaymentProviderHupijiao)
-
-	require.NoError(t, RechargeHupijiao("hupijiao-idempotency", decimal.RequireFromString("9.99"), "127.0.0.1"))
-	require.NoError(t, RechargeHupijiao("hupijiao-idempotency", decimal.RequireFromString("9.99"), "127.0.0.1"))
-
-	assert.Equal(t, common.TopUpStatusSuccess, getTopUpStatusForPaymentGuardTest(t, "hupijiao-idempotency"))
-	assert.Equal(t, int(2*common.QuotaPerUnit), getUserQuotaForPaymentGuardTest(t, 112))
 }
 
 func TestUpdatePendingTopUpStatus_RejectsMismatchedPaymentProvider(t *testing.T) {

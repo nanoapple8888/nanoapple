@@ -302,9 +302,6 @@ export type BillingSettings = {
   CreemWebhookSecret: string
   CreemTestMode: boolean
   CreemProducts: string
-  HupijiaoEndpoint: string
-  HupijiaoAppID: string
-  HupijiaoAppSecret: string
   WaffoEnabled: boolean
   WaffoApiKey: string
   WaffoPrivateKey: string
