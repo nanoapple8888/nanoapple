@@ -82,6 +82,11 @@ export function isWaffoPayment(paymentType: string): boolean {
   return paymentType === PAYMENT_TYPES.WAFFO
 }
 
+/** Check if payment method is Hupijiao Easy Payment. */
+export function isHupijiaoPayment(paymentType: string): boolean {
+  return paymentType === PAYMENT_TYPES.HUPIJIAO
+}
+
 /**
  * Check if payment method is Waffo Pancake
  *
@@ -97,6 +102,7 @@ export interface PaymentProcessors {
   regular: (topupAmount: number, paymentType: string) => Promise<boolean>
   waffo: (topupAmount: number, payMethodIndex: number) => Promise<boolean>
   waffoPancake: (topupAmount: number) => Promise<boolean>
+  hupijiao: (topupAmount: number) => Promise<boolean>
 }
 
 export async function dispatchSelectedPayment(
@@ -114,6 +120,10 @@ export async function dispatchSelectedPayment(
 
   if (isWaffoPancakePayment(paymentMethod.type)) {
     return processors.waffoPancake(topupAmount)
+  }
+
+  if (isHupijiaoPayment(paymentMethod.type)) {
+    return processors.hupijiao(topupAmount)
   }
 
   return processors.regular(topupAmount, paymentMethod.type)
@@ -144,6 +154,10 @@ export function getDefaultPaymentType(topupInfo: TopupInfo | null): string {
     return PAYMENT_TYPES.WAFFO_PANCAKE
   }
 
+  if (topupInfo.enable_hupijiao_topup) {
+    return PAYMENT_TYPES.HUPIJIAO
+  }
+
   return DEFAULT_PAYMENT_TYPE
 }
 
@@ -169,6 +183,10 @@ export function getMinTopupAmount(topupInfo: TopupInfo | null): number {
 
   if (topupInfo.enable_waffo_pancake_topup) {
     return topupInfo.waffo_pancake_min_topup || DEFAULT_MIN_TOPUP
+  }
+
+  if (topupInfo.enable_hupijiao_topup) {
+    return topupInfo.min_topup || DEFAULT_MIN_TOPUP
   }
 
   return DEFAULT_MIN_TOPUP

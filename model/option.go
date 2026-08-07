@@ -97,6 +97,9 @@ func InitOptionMap() {
 	common.OptionMap["CreemProducts"] = setting.CreemProducts
 	common.OptionMap["CreemTestMode"] = strconv.FormatBool(setting.CreemTestMode)
 	common.OptionMap["CreemWebhookSecret"] = setting.CreemWebhookSecret
+	common.OptionMap["HupijiaoEndpoint"] = setting.HupijiaoEndpoint
+	common.OptionMap["HupijiaoAppID"] = setting.HupijiaoAppID
+	common.OptionMap["HupijiaoAppSecret"] = setting.HupijiaoAppSecret
 	common.OptionMap["WaffoEnabled"] = strconv.FormatBool(setting.WaffoEnabled)
 	common.OptionMap["WaffoApiKey"] = setting.WaffoApiKey
 	common.OptionMap["WaffoPrivateKey"] = setting.WaffoPrivateKey
@@ -460,6 +463,12 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.CreemTestMode = value == "true"
 	case "CreemWebhookSecret":
 		setting.CreemWebhookSecret = value
+	case "HupijiaoEndpoint":
+		setting.HupijiaoEndpoint = value
+	case "HupijiaoAppID":
+		setting.HupijiaoAppID = value
+	case "HupijiaoAppSecret":
+		setting.HupijiaoAppSecret = value
 	case "WaffoEnabled":
 		setting.WaffoEnabled = value == "true"
 	case "WaffoApiKey":

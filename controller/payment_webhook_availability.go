@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/QuantumNous/new-api/setting"
@@ -90,6 +91,34 @@ func isWaffoPancakeWebhookConfigured() bool {
 
 func isWaffoPancakeWebhookEnabled() bool {
 	return isWaffoPancakeTopUpEnabled()
+}
+
+func isHupijiaoEndpointValid(endpoint string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return false
+	}
+	return parsed.Host != "" && parsed.User == nil &&
+		(parsed.Path == "" || parsed.Path == "/") &&
+		parsed.RawQuery == "" && parsed.Fragment == ""
+}
+
+func isHupijiaoTopUpEnabled() bool {
+	if !isPaymentComplianceConfirmed() {
+		return false
+	}
+	_, callbackConfigured := getHupijiaoCallbackURL()
+	return isHupijiaoEndpointValid(setting.HupijiaoEndpoint) &&
+		strings.TrimSpace(setting.HupijiaoAppID) != "" &&
+		strings.TrimSpace(setting.HupijiaoAppSecret) != "" &&
+		callbackConfigured
+}
+
+func isHupijiaoWebhookEnabled() bool {
+	return isHupijiaoTopUpEnabled()
 }
 
 func isEpayTopUpEnabled() bool {
