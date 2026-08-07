@@ -24,10 +24,9 @@ import (
 func GetTopUpInfo(c *gin.Context) {
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
 
-	// 只有已完成配置的网关才向用户展示其支付方式，避免遗留的 Epay
-	// 方式在未配置 Epay 凭据时被误选中。
+	// 获取支付方式
 	payMethods := operation_setting.PayMethods
-	if !complianceConfirmed || !isEpayTopUpEnabled() {
+	if !complianceConfirmed {
 		payMethods = []map[string]string{}
 	}
 
@@ -96,33 +95,12 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
-	enableHupijiao := isHupijiaoTopUpEnabled()
-	if enableHupijiao {
-		hasHupijiao := false
-		for _, method := range payMethods {
-			if method["type"] == model.PaymentMethodHupijiao {
-				hasHupijiao = true
-				break
-			}
-		}
-
-		if !hasHupijiao {
-			payMethods = append(payMethods, map[string]string{
-				"name":      "虎皮椒易支付",
-				"type":      model.PaymentMethodHupijiao,
-				"color":     "#16A34A",
-				"min_topup": strconv.FormatInt(getMinTopup(), 10),
-			})
-		}
-	}
-
 	data := gin.H{
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
 		"enable_waffo_topup":               enableWaffo,
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
-		"enable_hupijiao_topup":            enableHupijiao,
 		"enable_redemption":                complianceConfirmed,
 		"payment_compliance_confirmed":     complianceConfirmed,
 		"payment_compliance_terms_version": operation_setting.CurrentComplianceTermsVersion,

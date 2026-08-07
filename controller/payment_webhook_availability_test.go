@@ -5,7 +5,6 @@ import (
 
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/stretchr/testify/require"
 )
 
@@ -167,32 +166,4 @@ func TestEpayWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
 
 	operation_setting.PayMethods = nil
 	require.False(t, isEpayWebhookEnabled())
-}
-
-func TestHupijiaoWebhookEnabledRequiresCredentialsAndCallback(t *testing.T) {
-	confirmPaymentComplianceForTest(t)
-	originalEndpoint := setting.HupijiaoEndpoint
-	originalAppID := setting.HupijiaoAppID
-	originalAppSecret := setting.HupijiaoAppSecret
-	originalCallbackAddress := operation_setting.CustomCallbackAddress
-	originalServerAddress := system_setting.ServerAddress
-	t.Cleanup(func() {
-		setting.HupijiaoEndpoint = originalEndpoint
-		setting.HupijiaoAppID = originalAppID
-		setting.HupijiaoAppSecret = originalAppSecret
-		operation_setting.CustomCallbackAddress = originalCallbackAddress
-		system_setting.ServerAddress = originalServerAddress
-	})
-
-	setting.HupijiaoEndpoint = "https://api.dpweixin.com"
-	setting.HupijiaoAppID = "app-id"
-	setting.HupijiaoAppSecret = ""
-	operation_setting.CustomCallbackAddress = "https://gateway.example.com"
-	require.False(t, isHupijiaoWebhookEnabled())
-
-	setting.HupijiaoAppSecret = "app-secret"
-	require.True(t, isHupijiaoWebhookEnabled())
-
-	operation_setting.CustomCallbackAddress = "https://gateway.example.com/path"
-	require.False(t, isHupijiaoWebhookEnabled())
 }

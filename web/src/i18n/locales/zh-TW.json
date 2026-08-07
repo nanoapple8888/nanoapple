@@ -5225,15 +5225,6 @@
     "Record complete request and response bodies": "記錄完整請求與回應內容",
     "Stores the unredacted downstream and upstream request and response bodies. This setting only applies while relay tracing is enabled.": "記錄未遮罩的下游與上游請求、回應正文。僅在啟用轉發請求追蹤時生效。",
     "Privacy and storage warning: complete bodies are written to server logs and can contain prompts, generated media, personal data, and secrets supplied in request bodies. Enable this only for short troubleshooting windows; it can substantially increase log storage and memory use.": "隱私與儲存警告：完整正文會寫入伺服器日誌，可能包含提示詞、生成媒體、個人資料及請求正文中的密鑰。僅應在短時間排障時啟用；它會顯著增加日誌儲存和記憶體使用量。",
-    "Standard relay tracing uses redacted previews and omits binary media. Search server logs for relay_trace= and the request ID when investigating a failure.": "標準轉發追蹤使用遮罩預覽，並省略二進位媒體。排查失敗時可依 relay_trace= 和請求 ID 搜尋伺服器日誌。",
-    "Hupijiao": "虎皮椒易支付",
-    "Hupijiao Gateway": "虎皮椒易支付閘道",
-    "Configuration for Hupijiao Easy Payment, including compatible standby gateways.": "設定虎皮椒易支付及相容的備用閘道。",
-    "Configure the callback address under Epay. Leave it blank to use the server address.": "請在 Epay 中設定回呼地址；留空則使用伺服器地址。",
-    "Hupijiao endpoint": "虎皮椒介面地址",
-    "Enter only the gateway origin. Do not include /payment/do.html or another path.": "只填寫閘道根地址，不要包含 /payment/do.html 或其他路徑。",
-    "Hupijiao App ID": "虎皮椒 App ID",
-    "Hupijiao App Secret": "虎皮椒 App Secret",
-    "Enter a valid Hupijiao gateway origin, for example https://api.dpweixin.com, without any path.": "請輸入有效的虎皮椒閘道根地址，例如 https://api.dpweixin.com，且不要帶路徑。"
+    "Standard relay tracing uses redacted previews and omits binary media. Search server logs for relay_trace= and the request ID when investigating a failure.": "標準轉發追蹤使用遮罩預覽，並省略二進位媒體。排查失敗時可依 relay_trace= 和請求 ID 搜尋伺服器日誌。"
   }
 }
