@@ -146,6 +146,11 @@ func UpdateOption(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgPaymentComplianceRequired)
 			return
 		}
+	case "HupijiaoEndpoint":
+		if value := strings.TrimSpace(option.Value.(string)); value != "" && !isHupijiaoPaymentURLValid(value) {
+			common.ApiErrorMsg(c, "虎皮椒网关必须是完整的 HTTPS /payment/do.html 地址")
+			return
+		}
 	default:
 		if isPaymentComplianceOptionKey(option.Key) {
 			common.ApiErrorMsg(c, "合规确认字段不允许通过通用设置接口修改")
