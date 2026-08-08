@@ -5225,6 +5225,19 @@
     "Record complete request and response bodies": "记录完整请求与响应内容",
     "Stores the unredacted downstream and upstream request and response bodies. This setting only applies while relay tracing is enabled.": "记录未脱敏的下游和上游请求、响应正文。仅在启用转发请求追踪时生效。",
     "Privacy and storage warning: complete bodies are written to server logs and can contain prompts, generated media, personal data, and secrets supplied in request bodies. Enable this only for short troubleshooting windows; it can substantially increase log storage and memory use.": "隐私与存储警告：完整正文会写入服务端日志，可能包含提示词、生成媒体、个人数据及请求正文中的密钥。仅应在短时间排障时启用；它会显著增加日志存储和内存占用。",
-    "Standard relay tracing uses redacted previews and omits binary media. Search server logs for relay_trace= and the request ID when investigating a failure.": "标准转发追踪使用脱敏预览，并省略二进制媒体。排查失败时可按 relay_trace= 和请求 ID 搜索服务端日志。"
+    "Standard relay tracing uses redacted previews and omits binary media. Search server logs for relay_trace= and the request ID when investigating a failure.": "标准转发追踪使用脱敏预览，并省略二进制媒体。排查失败时可按 relay_trace= 和请求 ID 搜索服务端日志。",
+    "Hupijiao": "虎皮椒易支付",
+    "Hupijiao Gateway": "虎皮椒易支付网关",
+    "Configuration for Hupijiao Easy Payment, including compatible standby gateways.": "配置虎皮椒易支付及兼容的备用网关。",
+    "Enable Hupijiao payments": "启用虎皮椒支付",
+    "Users can choose Hupijiao only when this switch is enabled and all required fields are configured.": "只有开启此开关并完整配置所有必填项后，用户才能选择虎皮椒支付。",
+    "The callback base is configured under General. Hupijiao requires a public HTTPS address.": "回调站点根地址在通用设置中配置；虎皮椒要求使用公网 HTTPS 地址。",
+    "Hupijiao endpoint": "虎皮椒接口地址",
+    "Enter the complete HTTPS do.html address supplied by Hupijiao.": "填写虎皮椒提供的完整 HTTPS do.html 地址。",
+    "Hupijiao App ID": "虎皮椒 App ID",
+    "Hupijiao App Secret": "虎皮椒 App Secret",
+    "Enter new secret to update": "输入新密钥以更新",
+    "Enter the complete Hupijiao HTTPS payment URL, for example https://api.xunhupay.com/payment/do.html.": "请输入完整的虎皮椒 HTTPS 支付地址，例如 https://api.xunhupay.com/payment/do.html。",
+    "Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, hupijiao for Hupijiao, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.": "保存为 PayMethods JSON。type 决定支付流程：stripe 使用 Stripe，hupijiao 使用虎皮椒，waffo_pancake 使用 Waffo Pancake，其他值作为 type 参数发送给 Epay。"
   }
 }
