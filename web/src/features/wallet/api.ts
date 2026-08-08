@@ -35,8 +35,6 @@ import type {
   CompleteOrderRequest,
   CreemPaymentRequest,
   CreemPaymentResponse,
-  HupijiaoPaymentRequest,
-  HupijiaoPaymentResponse,
   WaffoPaymentRequest,
   WaffoPaymentResponse,
   WaffoPancakePaymentRequest,
@@ -142,16 +140,6 @@ export async function requestCreemPayment(
   request: CreemPaymentRequest
 ): Promise<CreemPaymentResponse> {
   const res = await api.post('/api/user/creem/pay', request, {
-    skipBusinessError: true,
-  } as Record<string, unknown>)
-  return res.data
-}
-
-/** Request a Hupijiao Easy Payment checkout URL */
-export async function requestHupijiaoPayment(
-  request: HupijiaoPaymentRequest
-): Promise<HupijiaoPaymentResponse> {
-  const res = await api.post('/api/user/hupijiao/pay', request, {
     skipBusinessError: true,
   } as Record<string, unknown>)
   return res.data

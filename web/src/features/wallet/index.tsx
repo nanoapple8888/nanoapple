@@ -39,7 +39,6 @@ import {
   useAffiliate,
   useRedemption,
   useCreemPayment,
-  useHupijiaoPayment,
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
@@ -106,8 +105,6 @@ export function Wallet(props: WalletProps) {
   } = useAffiliate()
   const { redeeming, redeemCode } = useRedemption()
   const { processing: creemProcessing, processCreemPayment } = useCreemPayment()
-  const { processing: hupijiaoProcessing, processHupijiaoPayment } =
-    useHupijiaoPayment()
   const { processing: waffoProcessing, processWaffoPayment } = useWaffoPayment()
   const { processing: pancakeProcessing, processWaffoPancakePayment } =
     useWaffoPancakePayment()
@@ -203,7 +200,6 @@ export function Wallet(props: WalletProps) {
         regular: processPayment,
         waffo: processWaffoPayment,
         waffoPancake: processWaffoPancakePayment,
-        hupijiao: processHupijiaoPayment,
       }
     )
 
@@ -327,6 +323,9 @@ export function Wallet(props: WalletProps) {
                   waffoPayMethods={topupInfo?.waffo_pay_methods}
                   waffoMinTopup={topupInfo?.waffo_min_topup}
                   onWaffoMethodSelect={handleWaffoMethodSelect}
+                  enableWaffoPancakeTopup={
+                    topupInfo?.enable_waffo_pancake_topup
+                  }
                 />
               </div>
 
@@ -359,12 +358,7 @@ export function Wallet(props: WalletProps) {
         paymentAmount={paymentAmount}
         paymentMethod={selectedPaymentMethod}
         calculating={calculating}
-        processing={
-          processing ||
-          hupijiaoProcessing ||
-          waffoProcessing ||
-          pancakeProcessing
-        }
+        processing={processing || waffoProcessing || pancakeProcessing}
         discountRate={getDiscountRate()}
         usdExchangeRate={effectiveUsdExchangeRate}
       />

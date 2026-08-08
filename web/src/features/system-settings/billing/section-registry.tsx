@@ -152,10 +152,6 @@ const BILLING_SECTIONS = [
           CreemWebhookSecret: settings.CreemWebhookSecret,
           CreemTestMode: settings.CreemTestMode,
           CreemProducts: settings.CreemProducts,
-          HupijiaoEnabled: settings.HupijiaoEnabled,
-          HupijiaoEndpoint: settings.HupijiaoEndpoint,
-          HupijiaoAppID: settings.HupijiaoAppID,
-          HupijiaoAppSecret: settings.HupijiaoAppSecret,
         }}
         waffoDefaultValues={{
           WaffoEnabled: settings.WaffoEnabled ?? false,

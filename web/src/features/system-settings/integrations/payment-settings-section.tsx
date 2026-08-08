@@ -94,25 +94,6 @@ function isHttpOriginUrl(value: string) {
   }
 }
 
-function isHupijiaoPaymentUrl(value: string) {
-  const trimmed = value.trim()
-  if (!trimmed) return true
-
-  try {
-    const url = new URL(trimmed)
-    return (
-      url.protocol === 'https:' &&
-      url.pathname === '/payment/do.html' &&
-      !url.username &&
-      !url.password &&
-      !url.search &&
-      !url.hash
-    )
-  } catch {
-    return false
-  }
-}
-
 const paymentSchema = z.object({
   PayAddress: z.string().refine((value) => {
     const trimmed = value.trim()
@@ -178,15 +159,6 @@ const paymentSchema = z.object({
       })
     }
   }),
-  HupijiaoEnabled: z.boolean(),
-  HupijiaoEndpoint: z
-    .string()
-    .refine(
-      isHupijiaoPaymentUrl,
-      'Enter the complete Hupijiao HTTPS payment URL, for example https://api.xunhupay.com/payment/do.html.'
-    ),
-  HupijiaoAppID: z.string(),
-  HupijiaoAppSecret: z.string(),
   WaffoEnabled: z.boolean(),
   WaffoApiKey: z.string(),
   WaffoPrivateKey: z.string(),
@@ -465,10 +437,6 @@ export function PaymentSettingsSection({
       CreemWebhookSecret: values.CreemWebhookSecret.trim(),
       CreemTestMode: values.CreemTestMode,
       CreemProducts: values.CreemProducts.trim(),
-      HupijiaoEnabled: values.HupijiaoEnabled,
-      HupijiaoEndpoint: values.HupijiaoEndpoint.trim(),
-      HupijiaoAppID: values.HupijiaoAppID.trim(),
-      HupijiaoAppSecret: values.HupijiaoAppSecret.trim(),
       WaffoEnabled: values.WaffoEnabled,
       WaffoSandbox: values.WaffoSandbox,
       WaffoMerchantId: values.WaffoMerchantId.trim(),
@@ -514,10 +482,6 @@ export function PaymentSettingsSection({
       CreemWebhookSecret: initialRef.current.CreemWebhookSecret.trim(),
       CreemTestMode: initialRef.current.CreemTestMode,
       CreemProducts: initialRef.current.CreemProducts.trim(),
-      HupijiaoEnabled: initialRef.current.HupijiaoEnabled,
-      HupijiaoEndpoint: initialRef.current.HupijiaoEndpoint.trim(),
-      HupijiaoAppID: initialRef.current.HupijiaoAppID.trim(),
-      HupijiaoAppSecret: initialRef.current.HupijiaoAppSecret.trim(),
       WaffoEnabled: initialRef.current.WaffoEnabled,
       WaffoSandbox: initialRef.current.WaffoSandbox,
       WaffoMerchantId: initialRef.current.WaffoMerchantId.trim(),
@@ -663,34 +627,6 @@ export function PaymentSettingsSection({
       normalizeJsonForComparison(initial.CreemProducts)
     ) {
       updates.push({ key: 'CreemProducts', value: sanitized.CreemProducts })
-    }
-
-    if (sanitized.HupijiaoEnabled !== initial.HupijiaoEnabled) {
-      updates.push({
-        key: 'HupijiaoEnabled',
-        value: sanitized.HupijiaoEnabled,
-      })
-    }
-
-    if (sanitized.HupijiaoEndpoint !== initial.HupijiaoEndpoint) {
-      updates.push({
-        key: 'HupijiaoEndpoint',
-        value: sanitized.HupijiaoEndpoint,
-      })
-    }
-
-    if (sanitized.HupijiaoAppID !== initial.HupijiaoAppID) {
-      updates.push({ key: 'HupijiaoAppID', value: sanitized.HupijiaoAppID })
-    }
-
-    if (
-      sanitized.HupijiaoAppSecret &&
-      sanitized.HupijiaoAppSecret !== initial.HupijiaoAppSecret
-    ) {
-      updates.push({
-        key: 'HupijiaoAppSecret',
-        value: sanitized.HupijiaoAppSecret,
-      })
     }
 
     if (sanitized.WaffoEnabled !== initial.WaffoEnabled) {
@@ -941,10 +877,9 @@ export function PaymentSettingsSection({
           />
           <Tabs defaultValue='general' className='min-w-0'>
             <div className='overflow-x-auto pb-1'>
-              <TabsList className='grid min-w-[52rem] grid-cols-7'>
+              <TabsList className='grid min-w-[44rem] grid-cols-6'>
                 <TabsTrigger value='general'>{t('General')}</TabsTrigger>
                 <TabsTrigger value='epay'>Epay</TabsTrigger>
-                <TabsTrigger value='hupijiao'>{t('Hupijiao')}</TabsTrigger>
                 <TabsTrigger value='stripe'>{t('Stripe')}</TabsTrigger>
                 <TabsTrigger value='creem'>Creem</TabsTrigger>
                 <TabsTrigger value='waffo-pancake'>Waffo Pancake</TabsTrigger>
@@ -1063,7 +998,7 @@ export function PaymentSettingsSection({
                       </FormControl>
                       <FormDescription>
                         {t(
-                          'Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, hupijiao for Hupijiao, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.'
+                          'Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.'
                         )}
                       </FormDescription>
                       <FormMessage />
@@ -1288,139 +1223,6 @@ export function PaymentSettingsSection({
                           <Input
                             type='password'
                             placeholder={t('Enter new key to update')}
-                            autoComplete='new-password'
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('Leave blank unless rotating the secret')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent
-              value='hupijiao'
-              className={paymentTabContentClassName}
-            >
-              <div className='space-y-4'>
-                <div>
-                  <h3 className='text-lg font-medium'>
-                    {t('Hupijiao Gateway')}
-                  </h3>
-                  <p className='text-muted-foreground text-sm'>
-                    {t(
-                      'Configuration for Hupijiao Easy Payment, including compatible standby gateways.'
-                    )}
-                  </p>
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name='HupijiaoEnabled'
-                  render={({ field }) => (
-                    <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
-                      <div className='space-y-1'>
-                        <FormLabel>{t('Enable Hupijiao payments')}</FormLabel>
-                        <FormDescription>
-                          {t(
-                            'Users can choose Hupijiao only when this switch is enabled and all required fields are configured.'
-                          )}
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <Alert>
-                  <ShieldAlert className='h-4 w-4' />
-                  <AlertTitle>{t('Callback URL')}</AlertTitle>
-                  <AlertDescription>
-                    <code className='bg-muted rounded px-1 py-0.5 text-xs'>
-                      {`${
-                        removeTrailingSlash(
-                          currentFormValues.CustomCallbackAddress
-                        ) || '<ServerAddress>'
-                      }/api/user/hupijiao/notify`}
-                    </code>
-                    <p className='mt-2'>
-                      {t(
-                        'The callback base is configured under General. Hupijiao requires a public HTTPS address.'
-                      )}
-                    </p>
-                  </AlertDescription>
-                </Alert>
-
-                <FormField
-                  control={form.control}
-                  name='HupijiaoEndpoint'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('Hupijiao endpoint')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder='https://api.xunhupay.com/payment/do.html'
-                          autoComplete='url'
-                          {...field}
-                          onChange={(event) =>
-                            field.onChange(event.target.value)
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {t(
-                          'Enter the complete HTTPS do.html address supplied by Hupijiao.'
-                        )}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className='grid gap-6 md:grid-cols-2'>
-                  <FormField
-                    control={form.control}
-                    name='HupijiaoAppID'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Hupijiao App ID')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            autoComplete='off'
-                            {...field}
-                            onChange={(event) =>
-                              field.onChange(event.target.value)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='HupijiaoAppSecret'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('Hupijiao App Secret')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type='password'
-                            placeholder={t('Enter new secret to update')}
                             autoComplete='new-password'
                             {...field}
                             onChange={(event) =>
