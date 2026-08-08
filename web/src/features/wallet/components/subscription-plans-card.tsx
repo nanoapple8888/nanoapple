@@ -59,14 +59,19 @@ import type {
 import { formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
-import { getSubscriptionEpayMethods } from '../lib/payment'
-import type { TopupInfo } from '../types'
+import type { PaymentMethod, TopupInfo } from '../types'
 
 interface SubscriptionPlansCardProps {
   topupInfo: TopupInfo | null
   onAvailabilityChange?: (available: boolean) => void
   userQuota?: number
   onPurchaseSuccess?: () => void | Promise<void>
+}
+
+function getEpayMethods(payMethods: PaymentMethod[] = []): PaymentMethod[] {
+  return payMethods.filter(
+    (m) => m?.type && m.type !== 'stripe' && m.type !== 'creem'
+  )
 }
 
 function getBillingPreferenceLabel(
@@ -115,7 +120,7 @@ export function SubscriptionPlansCard({
   const enableWaffoPancake = !!topupInfo?.enable_waffo_pancake_topup
   const enableOnlineTopUp = !!topupInfo?.enable_online_topup
   const epayMethods = useMemo(
-    () => getSubscriptionEpayMethods(topupInfo?.pay_methods),
+    () => getEpayMethods(topupInfo?.pay_methods),
     [topupInfo?.pay_methods]
   )
 
