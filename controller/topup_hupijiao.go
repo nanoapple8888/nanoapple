@@ -179,7 +179,7 @@ func getHupijiaoCallbackURL() (string, bool) {
 	return callbackURL, len(callbackURL) <= 128
 }
 
-func decodeHupijiaoPaymentResponse(body []byte) (hupijiaoPaymentResponse, error) {
+func decodeHupijiaoPaymentResponse(body []byte, secret string) (hupijiaoPaymentResponse, error) {
 	var rawFields map[string]json.RawMessage
 	if err := common.Unmarshal(body, &rawFields); err != nil {
 		return hupijiaoPaymentResponse{}, fmt.Errorf("decode Hupijiao payment response: %w", err)
@@ -196,10 +196,10 @@ func decodeHupijiaoPaymentResponse(body []byte) (hupijiaoPaymentResponse, error)
 		}
 		params[key] = common.JsonRawMessageToString(rawValue)
 	}
-	responseHash, err := hex.DecodeString(strings.TrimSpace(params["hash"]))
-	if err != nil || len(responseHash) != md5.Size {
-		return hupijiaoPaymentResponse{}, errors.New("Hupijiao payment response has an invalid signature format")
+	if !verifyHupijiaoSign(params, secret) {
+		return hupijiaoPaymentResponse{}, errors.New("Hupijiao payment response signature is invalid")
 	}
+
 	errCode, err := strconv.Atoi(params["errcode"])
 	if err != nil {
 		return hupijiaoPaymentResponse{}, errors.New("Hupijiao payment response has an invalid error code")
@@ -252,10 +252,7 @@ func createHupijiaoPayment(ctx context.Context, endpoint string, secret string, 
 		return "", errors.New("Hupijiao payment response is too large")
 	}
 
-	// Some live Hupijiao gateways return a well-formed response hash that does
-	// not verify with their documented algorithm. The request is protected by
-	// HTTPS and the callback remains signature-verified before credit is added.
-	result, err := decodeHupijiaoPaymentResponse(responseBody)
+	result, err := decodeHupijiaoPaymentResponse(responseBody, secret)
 	if err != nil {
 		return "", err
 	}

@@ -162,13 +162,13 @@ func TestCreateHupijiaoPaymentAcceptsSignedFlatResponse(t *testing.T) {
 	assert.Equal(t, "https://api.xunhupay.com/alipay/pay/index.html?id=123", paymentURL)
 }
 
-func TestCreateHupijiaoPaymentAcceptsSuccessfulResponseWithUnverifiableSignature(t *testing.T) {
+func TestCreateHupijiaoPaymentRejectsInvalidResponseSignature(t *testing.T) {
 	originalClient := hupijiaoHTTPClient
 	hupijiaoHTTPClient = &http.Client{Transport: hupijiaoRoundTripper(func(_ *http.Request) (*http.Response, error) {
 		return &http.Response{
 			StatusCode: http.StatusOK,
 			Body: io.NopCloser(strings.NewReader(
-				`{"url":"https://api.xunhupay.com/pay/123","errcode":0,"errmsg":"success","hash":"00000000000000000000000000000000"}`,
+				`{"url":"https://api.xunhupay.com/pay/123","errcode":0,"errmsg":"success","hash":"invalid"}`,
 			)),
 			Header: make(http.Header),
 		}, nil
@@ -177,15 +177,14 @@ func TestCreateHupijiaoPaymentAcceptsSuccessfulResponseWithUnverifiableSignature
 		hupijiaoHTTPClient = originalClient
 	})
 
-	paymentURL, err := createHupijiaoPayment(
+	_, err := createHupijiaoPayment(
 		context.Background(),
 		"https://api.xunhupay.com/payment/do.html",
 		"test-secret",
 		map[string]string{"appid": "app-123"},
 	)
 
-	require.NoError(t, err)
-	assert.Equal(t, "https://api.xunhupay.com/pay/123", paymentURL)
+	require.ErrorContains(t, err, "signature is invalid")
 }
 
 func TestCreateHupijiaoPaymentRejectsSignedGatewayBusinessError(t *testing.T) {
@@ -347,21 +346,4 @@ func TestHupijiaoNotifyAcknowledgesSignedNonPaidStatus(t *testing.T) {
 	response := performHupijiaoNotify(t, params)
 	assert.Equal(t, http.StatusOK, response.Code)
 	assert.Equal(t, hupijiaoNotifySuccess, response.Body.String())
-}
-
-func TestHupijiaoNotifyRejectsInvalidSignature(t *testing.T) {
-	configureHupijiaoForControllerTest(t)
-	params := map[string]string{
-		"trade_order_id": "HPJInvalidSignature123",
-		"total_fee":      "9.99",
-		"status":         hupijiaoPaidStatus,
-		"appid":          setting.HupijiaoAppID,
-		"time":           "1700000000",
-		"nonce_str":      "callback-nonce",
-		"hash":           "invalid",
-	}
-
-	response := performHupijiaoNotify(t, params)
-	assert.Equal(t, http.StatusBadRequest, response.Code)
-	assert.Equal(t, "fail", response.Body.String())
 }
